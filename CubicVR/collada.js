@@ -112,7 +112,7 @@ function getXML(srcUrl) {
   //try {
     var xmlHttp = new XMLHttpRequest();
     xmlHttp.open('GET', srcUrl, false);
-    xmlHttp.overrideMimeType("application/xml");
+    if (xmlHttp.overrideMimeType) xmlHttp.overrideMimeType("application/xml");
     xmlHttp.send(null);
 
     if (xmlHttp.status === 200 || xmlHttp.status === 0) {

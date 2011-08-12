@@ -4178,6 +4178,7 @@ function cubicvr_nodeToMotion(node, controllerId, motion) {
           var intype = null,
             outtype = null;
 
+
           if (ein.length) {
             intype = util.collectTextNode(ein[0]);
           }
@@ -4931,6 +4932,7 @@ OcTree.prototype.draw_on_map = function(map_canvas, map_context, target) {
 
   for (i = 0, len = this._children.length; i < len; ++i) {
     if (this._children[i] !== null) {
+
       this._children[i].draw_on_map(map_canvas, map_context, target);
     }
   } //for
@@ -5420,6 +5422,7 @@ Camera.prototype.calcProjection = function() {
     this.transform.rotate(-this.rotation[0], 1, 0, 0);
     this.transform.pushMatrix();
     this.mvMatrix = this.transform.getResult();
+
 
     // console.log(this.rotation);
   }
@@ -8995,6 +8998,7 @@ function cubicvr_loadCollada(meshUrl, prefix, deferred_bin) {
             case "rotateX":
             case "rotationX":
               controlTarget = enums.motion.ROT;
+
               motionTarget = enums.motion.X;
               break;
             case "rotateY":
