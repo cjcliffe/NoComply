@@ -274,6 +274,8 @@
       intro.resize();
       postMessage('loaded');
       initialized = true;
+      canvas.style.visibility = 'hidden';
+
 		}
 
     window.addEventListener('DOMContentLoaded', function() { init(); }, false);
@@ -532,6 +534,33 @@
       window.addEventListener('resize', center_div, false);
     </script>
 
+    <div id="seizure-warning">
+      <b>Warning:</b> The following demo contains flashing lights and patterns.<br />
+      Please consider this before viewing if you are sensitive to these visual effects.<br /><br />
+      <a class="seizure-warning-continue" id="seizure-warning-continue">CONTINUE</a>
+    </div>
+    <script type="text/javascript">
+      function positionWarning(e) {
+        var warning = document.getElementById('seizure-warning');
+        var t = (window.innerHeight/2 - warning.offsetHeight/2) + "px";
+        warning.style.top = t;
+      }; //positionWarning
+      window.addEventListener('resize', positionWarning, false);
+
+      positionWarning();
+      document.getElementById('seizure-warning').style.visibility = 'visible';
+      setTimeout(function() {
+        document.getElementById('seizure-warning-continue').style.visibility = 'visible';
+      }, 2000);
+      function onWarningClick(e) {
+        var canvas = document.getElementById('cubicvr-canvas');
+        document.getElementById('seizure-warning').style.display = 'none';
+        document.getElementById('seizure-warning-continue').removeEventListener('click', onWarningClick,  false);
+        canvas.style.visibility = 'visible';
+        window.removeEventListener('resize', positionWarning, false);
+      } //onWarningClick
+      document.getElementById('seizure-warning-continue').addEventListener('click', onWarningClick, false);
+    </script>
 
   </body>
 </html>
