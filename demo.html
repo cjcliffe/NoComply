@@ -52,8 +52,9 @@
   <script src="models/burst.data.timelines.json.lol.js"></script>
 
 	<script>
-  (function(window) {
+  var seizureWarningEnabled = true;
 
+  (function(window) {
     this.gfxData = { frameCounter: 0 };
     this.timerData = {
       timerMilliseconds: 0,
@@ -274,8 +275,9 @@
       intro.resize();
       postMessage('loaded');
       initialized = true;
-      canvas.style.visibility = 'hidden';
-
+      if (seizureWarningEnabled) {
+        canvas.style.visibility = 'hidden';
+      }
 		}
 
     window.addEventListener('DOMContentLoaded', function() { init(); }, false);
@@ -540,6 +542,7 @@
       <a class="seizure-warning-continue" id="seizure-warning-continue">CONTINUE</a>
     </div>
     <script type="text/javascript">
+    if (seizureWarningEnabled) {
       function positionWarning(e) {
         var warning = document.getElementById('seizure-warning');
         var t = (window.innerHeight/2 - warning.offsetHeight/2) + "px";
@@ -560,6 +563,7 @@
         window.removeEventListener('resize', positionWarning, false);
       } //onWarningClick
       document.getElementById('seizure-warning-continue').addEventListener('click', onWarningClick, false);
+    }
     </script>
 
   </body>
