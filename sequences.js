@@ -13,7 +13,14 @@
       shaderCheapTV,
       currentCamera,
       playing = true,
-      aspect = 1280 / 720;
+      aspect = 1280 / 720,
+      animFunc;
+
+  var nullAnimFunc = function() { 
+    // nop
+  };
+
+  animFunc = nullAnimFunc;
 
   var startResourceLoading = (function () {
     function loadResource(loadFunc, sceneId) {
@@ -271,7 +278,7 @@
 
       fxChain.render();
 
-      window.mozRequestAnimationFrame();
+      window.mozRequestAnimationFrame(animFunc);
     };
 
     var onIntroLoaded = function () {
@@ -383,8 +390,9 @@
         shaderScanlineShake.enabled = true;
         shaderColorTear.enabled = true;
 
-        window.addEventListener('MozBeforePaint', drawScene, false);
-        window.mozRequestAnimationFrame();
+        animFunc = drawScene;
+        // window.addEventListener('MozBeforePaint', drawScene, false);
+        window.mozRequestAnimationFrame(animFunc);
       },
       resize: function () {
         setSize();
@@ -396,7 +404,8 @@
         mono.removeEventListener('MozAudioAvailable', audioAvailable, false);
         mono.pause();
         audioOutput = null;
-        window.removeEventListener('MozBeforePaint', drawScene, false);
+        // window.removeEventListener('MozBeforePaint', drawScene, false);
+        animFunc = nullAnimFunc;
 
         // Wipe the canvas for reuse by demo
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -449,7 +458,7 @@
           window.burst.frame(timerData.timerSeconds);
           if (window.updateSprites) window.updateSprites();
         }
-        window.mozRequestAnimationFrame();
+        window.mozRequestAnimationFrame(animFunc);
     };
 
     function startDemoInterval() {
@@ -457,8 +466,9 @@
         return;
       }
       demoRunning = true;
-      window.addEventListener('MozBeforePaint', demoAnimationFunc, false);
-      window.mozRequestAnimationFrame();
+      // window.addEventListener('MozBeforePaint', demoAnimationFunc, false);
+      animFunc = demoAnimationFunc;
+      window.mozRequestAnimationFrame(animFunc);
     }
 
     function stopDemoInterval() {
@@ -467,7 +477,8 @@
       }
 
       demoRunning = false;
-      window.removeEventListener('MozBeforePaint', demoAnimationFunc, false);
+      // window.removeEventListener('MozBeforePaint', demoAnimationFunc, false);
+      animFunc = nullAnimFunc;
     }
 
     function update_scanline(shader) {
@@ -2427,7 +2438,7 @@
 
               if (oldTop < creditDiv.scrollTop) {
                 oldTop = creditDiv.scrollTop;
-                window.mozRequestAnimationFrame();
+                window.mozRequestAnimationFrame(animFunc);
               } else {
                 finishedCallback();
               }
@@ -2442,8 +2453,9 @@
             if (scrolling) {
               return;
             }
-            window.addEventListener('MozBeforePaint', creditRoll, false);
-            window.mozRequestAnimationFrame();
+            // window.addEventListener('MozBeforePaint', creditRoll, false);
+            animFunc = creditRoll;
+            window.mozRequestAnimationFrame(animFunc);
             scrolling = true;
           }
 
@@ -2451,7 +2463,8 @@
             if (!scrolling) {
               return;
             }
-            window.removeEventListener('MozBeforePaint', creditRoll, false);
+            // window.removeEventListener('MozBeforePaint', creditRoll, false);
+            animFunc = creditRoll;
             scrolling = false;
           }
 
@@ -2500,7 +2513,8 @@
             if (globals.video) {
               globals.video.pause();
             } //if
-            window.removeEventListener('MozBeforePaint', demoAnimationFunc, false);
+            // window.removeEventListener('MozBeforePaint', demoAnimationFunc, false);
+            animFunc = nullAnimFunc;
           } else {
             bpause.style.visibility = 'hidden';
             bplay.style.visibility = 'visible';
@@ -2508,8 +2522,9 @@
             if (globals.video) {
               globals.video.play();
             } //if
-            window.addEventListener('MozBeforePaint', demoAnimationFunc, false);
-            window.mozRequestAnimationFrame();
+            // window.addEventListener('MozBeforePaint', demoAnimationFunc, false);
+            animFunc = demoAnimationFunc;
+            window.mozRequestAnimationFrame(animFunc);
           } //if
         }, false);
 
