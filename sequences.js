@@ -100,7 +100,7 @@
         timerMilliseconds,
         timerSeconds = 0,
         timerLastSeconds = 0,
-        lp12,
+//        lp12,
         audioOutput,
         qSource = 0,
         fSource = 0;
@@ -185,16 +185,16 @@
           lastMove;
 
       function fade() {
-        if (lp12.cutoff === 22050 && lp12.resonance === 1) {
-          qSource = 0;
-          fSource = 0;
-          return;
-        }
+        // if (lp12.cutoff === 22050 && lp12.resonance === 1) {
+        //   qSource = 0;
+        //   fSource = 0;
+        //   return;
+        // }
 
-        var cutoff = Math.floor(Math.min(lp12.cutoff * 1.2, 22050));
-        var resonance = Math.floor(Math.max(lp12.resonance * 0.8, 1));
+        // var cutoff = Math.floor(Math.min(lp12.cutoff * 1.2, 22050));
+        // var resonance = Math.floor(Math.max(lp12.resonance * 0.8, 1));
 
-        lp12.set(cutoff, resonance);
+        // lp12.set(cutoff, resonance);
 
         qSource = qSource * 0.8;
         fSource = fSource * 0.8;
@@ -218,7 +218,7 @@
             dist = Math.sqrt(Math.pow(clientX - w2, 2) + Math.pow(clientY - h2, 2));
             x = Math.floor((rads + Math.PI) / (Math.PI * 8) * 22050 + 60),
             y = Math.floor(dist / w2 * 20 + 1);
-        lp12.set(x, y);
+        // lp12.set(x, y);
       };
     })();
 
@@ -278,7 +278,7 @@
 
       fxChain.render();
 
-      window.mozRequestAnimationFrame(animFunc);
+      window.requestAnimationFrame(animFunc);
     };
 
     var onIntroLoaded = function () {
@@ -292,9 +292,9 @@
     };
 
     var audioAvailable = function (event) {
-      var signal = DSP.getChannel(DSP.MIX, event.frameBuffer);
-      lp12.process(signal);
-      audioOutput.mozWriteAudio(signal);
+      // var signal = DSP.getChannel(DSP.MIX, event.frameBuffer);
+      // lp12.process(signal);
+      // audioOutput.mozWriteAudio(signal);
     };
 
     const TITLE_WAIT_TIME = 2000;
@@ -376,15 +376,15 @@
         canvas.addEventListener('mousemove', mix, false);
 
         mono = document.getElementById('mono');
-        lp12 = new IIRFilter(DSP.LOWPASS, 22050, 1, 44100);
-        audioOutput = new Audio();
-        audioOutput.mozSetup(1, 44100);
+        // lp12 = new IIRFilter(DSP.LOWPASS, 22050, 1, 44100);
+        // audioOutput = new Audio();
+        // audioOutput.mozSetup(1, 44100);
 
         mono.addEventListener('ended', function () {
           this.currentTime = 0;
         }, false);
 
-        mono.addEventListener('MozAudioAvailable', audioAvailable, false);
+        // mono.addEventListener('MozAudioAvailable', audioAvailable, false);
         mono.play();
 
         shaderScanlineShake.enabled = true;
@@ -392,7 +392,7 @@
 
         animFunc = drawScene;
         // window.addEventListener('MozBeforePaint', drawScene, false);
-        window.mozRequestAnimationFrame(animFunc);
+        window.requestAnimationFrame(animFunc);
       },
       resize: function () {
         setSize();
@@ -401,7 +401,7 @@
         clearInterval(moveMonitor);
         canvas.removeEventListener('mousemove', mix, false);
 
-        mono.removeEventListener('MozAudioAvailable', audioAvailable, false);
+        // mono.removeEventListener('MozAudioAvailable', audioAvailable, false);
         mono.pause();
         audioOutput = null;
         // window.removeEventListener('MozBeforePaint', drawScene, false);
@@ -458,7 +458,7 @@
           window.burst.frame(timerData.timerSeconds);
           if (window.updateSprites) window.updateSprites();
         }
-        window.mozRequestAnimationFrame(animFunc);
+        window.requestAnimationFrame(animFunc);
     };
 
     function startDemoInterval() {
@@ -468,7 +468,7 @@
       demoRunning = true;
       // window.addEventListener('MozBeforePaint', demoAnimationFunc, false);
       animFunc = demoAnimationFunc;
-      window.mozRequestAnimationFrame(animFunc);
+      window.requestAnimationFrame(animFunc);
     }
 
     function stopDemoInterval() {
@@ -1634,6 +1634,10 @@
       } //adjustGui
 
       function blinkGui() {
+        if (!div) {
+          div = document.getElementById('subway-gui');
+        }
+
         function doBlink() {
           ++blink;
           if (blink % 2 == 0) {
@@ -1768,7 +1772,7 @@
           collada.camera.target[1] += cy;
           collada.camera.setClip(0.01, 250);
 
-          if (div === undefined && timerData.timerSeconds > 175) {
+          if (!div && timerData.timerSeconds > 175) {
             div = document.getElementById('subway-gui');
             div.style.display = "block";
             blink = 0;
@@ -1812,6 +1816,7 @@
           shaderColorTear.onupdate = null;
           segments = null;
           segments_visibility = null;
+          div = document.getElementById('subway-gui');
           div.style.display = "none";
           div = undefined;
           onUnload();
@@ -2438,7 +2443,7 @@
 
               if (oldTop < creditDiv.scrollTop) {
                 oldTop = creditDiv.scrollTop;
-                window.mozRequestAnimationFrame(animFunc);
+                window.requestAnimationFrame(animFunc);
               } else {
                 finishedCallback();
               }
@@ -2455,7 +2460,7 @@
             }
             // window.addEventListener('MozBeforePaint', creditRoll, false);
             animFunc = creditRoll;
-            window.mozRequestAnimationFrame(animFunc);
+            window.requestAnimationFrame(animFunc);
             scrolling = true;
           }
 
@@ -2524,7 +2529,7 @@
             } //if
             // window.addEventListener('MozBeforePaint', demoAnimationFunc, false);
             animFunc = demoAnimationFunc;
-            window.mozRequestAnimationFrame(animFunc);
+            window.requestAnimationFrame(animFunc);
           } //if
         }, false);
 

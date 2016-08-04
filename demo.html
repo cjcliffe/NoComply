@@ -30,7 +30,7 @@
   <video id="portal-video" src="videos/portal.webm" style="display:none" width="720" height="416" preload="auto"></video>
   <video id="ending-video" src="videos/kraddy-ending.webm" style="display:none" width="720" height="416" preload="auto"></video>
 	<audio id="no-comply" tabindex="0" src="music/no-comply.ogg" controls="true" preload="auto"></audio>
-	<audio id="mono" src="music/1.Mono.ogg" muted="true" preload="auto"></audio>
+	<audio id="mono" src="music/1.Mono.ogg" preload="auto"></audio><!-- !muted -->
 
 	<script src="CubicVR/CubicVR.js"></script>
 	<script id="core-shader-vs" src="CubicVR/CubicVR_Core.vs" type="x-shader/x-vertex"></script>
@@ -66,6 +66,20 @@
      * Audio analysis
      */
     var audio = document.getElementById('no-comply');
+
+    audio.bufferSize = 1024;
+    audio.channels = 1;
+
+    var audioContext = new AudioContext();
+    audio.rate = audioContext.sampleRate;
+
+    var audioSource = audioContext.createMediaElementSource(audio);
+    var audioSourceData = audioContext.createScriptProcessor(audio.bufferSize, 2, 1);
+
+    audioSource.connect(audioSourceData);
+    audioSourceData.connect(audioContext.destination);
+    audioSource.connect(audioContext.destination);
+
     var audioData = this.audioData = (function() {
         var
         bassdrum = {
@@ -135,13 +149,28 @@
         glitch: glitch,
         stab: stab,
         update: function (event) {
-          audioData.audioPositionInSeconds = audio.currentTime;
+          if (!audioData.fft || audio.paused) {
+            return;
+          }
+
+          var signalLeft = event.inputBuffer.getChannelData(0);
+          var signalRight = event.inputBuffer.getChannelData(1);
+
+          if (!audioData.signal) {
+              audioData.signal = new Float32Array(signalLeft.length);
+          }
+
+          for (var i = 0, fbl = audioData.bufferSize; i < fbl; i++) {
+              audioData.signal[i] = signalLeft[i] + signalRight[i] / 2;
+          }
+
+          audioData.audioPositionInSeconds = audioContext.currentTime;
           audioData.audioPositionInRadians = audioData.audioPositionInSeconds /
                                              audioData.audioDurationInSeconds *
                                              audioData.audioDurationInRadians;
-          audioData.signal = DSP.getChannel(DSP.MIX, event.frameBuffer);
+          // audioData.signal = DSP.getChannel(DSP.MIX, audio.signal);
           audioData.fft.forward(audioData.signal);
-          audioData.timestamp = event.time;
+          audioData.timestamp = audioContext.currentTime;
           audioData.bd.process(audioData.timestamp, audioData.fft.spectrum);
 
           for (var i=0, tl=triggers.length; i<tl; i++) {
@@ -188,19 +217,20 @@
         }, //update
         init: function(audio) {
           this.audioDurationInSeconds = audio.duration;
+          this.channels = audio.channels;
+          this.rate = audio.rate;
+          this.frameBufferLength = audio.bufferSize;
 
-          this.channels = audio.mozChannels;
-          this.rate = audio.mozSampleRate;
-          this.frameBufferLength = audio.mozFrameBufferLength;
+          this.bufferSize = audio.bufferSize;
 
-          this.bufferSize = (this.frameBufferLength / this.channels);
-
-          this.fft = new FFT(this.bufferSize, this.rate);
+          this.fft = new FFT(audio.bufferSize, audio.rate);
           this.signal = new Float32Array(this.bufferSize);
 
           this.bd = new BeatDetektor(75, 85);
           this.kick_det = new BeatDetektor.modules.vis.BassKick();
           this.vu = new BeatDetektor.modules.vis.VU();
+
+          audioSourceData.onaudioprocess = this.update;
         }
       };
     })();
