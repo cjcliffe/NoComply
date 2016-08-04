@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>CubicVR 3D Engine - Javascript Port</title>
+		<script src="CubicVR/CubicVR.js" type="text/javascript"></script>
+		<script src="bitmap_cube_array.js" type="text/javascript"></script>
+		<script type='text/javascript'>	
+			var scene_test;
+			var light_obj;
+			var canvas_w,canvas_h,aspect;
+			
+			var gl;
+		  function initGL(canvas) {
+		    try {
+		      gl = canvas.getContext("experimental-webgl");
+		      gl.viewport(0, 0, canvas.width, canvas.height);
+		    } catch(e) {
+		    }
+		    if (!gl) {
+		      alert("Could not initialise WebGL, sorry :-(");
+		    }
+		
+				CubicVR.GLCore.init(gl,"CubicVR/CubicVR_Core.vs","CubicVR/CubicVR_Core.fs");
+		  }
+		
+			var light_test;
+
+			var bca = null;
+			var testObj = null;
+			var tex = null;
+			var activeScene = 0;
+			var playing = false;
+			var playTimer = 0;
+
+      var sceneList = [
+        "dae_models/intro_city-anim.dae",
+        "dae_models/subway_station.dae",
+        "dae_models/dungeon.dae",
+        "dae_models/ending.dae"
+      ];
+
+      var sceneTimes = [
+        26,
+        123,
+        238,
+        323
+      ];
+
+
+      var timerData = {
+        timerMilliseconds: 0,
+        timerSeconds: 0,
+        timerLastSeconds: 0,
+      };
+
+      function runTimer() {
+          if (!timerData.timerMilliseconds) {
+            timerData.timerMilliseconds = +new Date();
+            return;
+          }
+
+          var newTimerMilliseconds = new Date();
+          timerData.timerLastSeconds = (newTimerMilliseconds - timerData.timerMilliseconds) / 1000.0;
+          timerData.timerSeconds += timerData.timerLastSeconds;
+          timerData.timerMilliseconds = newTimerMilliseconds;
+      }
+
+
+			function webGLStart() 
+			{
+		    var canvas = document.getElementById("cubicvr-canvas");
+		    initGL(canvas);	
+		    
+		    var ss = document.getElementById("sceneSelect");
+		    
+		    for (var i = 0; i < sceneList.length; i++)
+		    {
+  		    ss.options[i] = new Option(sceneList[i],i);
+		    }
+
+		    ss.onchange = function() {
+		      var h = window.location.href;
+  		    var ss = document.getElementById("sceneSelect");
+
+		      if (h.lastIndexOf("?")!==-1)
+		      {
+		        h = h.substr(0,h.indexOf("?"));
+		      }
+
+		      window.location.href = h+"?sceneRef="+ss.options[ss.selectedIndex].value;
+		    }
+		    
+		    if (window.location.search.length)
+		    {
+		      var s = window.location.search;
+		      if (s.lastIndexOf("?")==0) {
+		        s = s.substr(1);
+		        var vals = s.split("=");
+		        
+		        if (vals[0]=='sceneRef') {
+		          activeScene = parseInt(vals[1]);
+		          if (activeScene>=sceneList.length) {
+		            activeScene = sceneList.length-1;
+		          }
+		          else if (activeScene < 0) {
+		            activeScene = 0;
+		          }
+		        }
+		      }
+		    }
+		    
+		    ss.selectedIndex = activeScene;
+		    
+		    playTimer = sceneTimes[activeScene];
+		    
+				
+        scene_test = CubicVR.loadCollada(sceneList[activeScene],"./scene_images/")
+          
+        var skybox = new CubicVR.SkyBox(new CubicVR.Texture("./scene_images/sky1.jpg"));
+        scene_test.setSkyBox(skybox);
+        scene_test.camera.setClip(0.1,1000);
+				scene_test.camera.setDimensions(canvas_w,canvas_h);
+        scene_test.camera.setTargeted(true);
+        scene_test.camera.motion = null; // disable camera animations
+        
+        // scene_test.camera.target = scene_test.getSceneObject("Empty").position;
+				
+        // light_test = new cubicvr_light(CubicVR.enums.light.type.DIRECTIONAL);
+        light_test = new CubicVR.Light(CubicVR.enums.light.type.POINT,CubicVR.enums.light.type.DYNAMIC);
+        // light_test.setDirection([1,0.4,1]);
+				light_test.position = [6,10,6];
+				light_test.distance = 1000;
+				light_test.intensity = 1.0;
+				light_test.diffuse = [1,1,1];
+				light_test.specular = [0.5,0.5,0.5];
+				
+        // scene_test.lights = [];
+
+        scene_test.attachOcTree(new CubicVR.OcTree(2000, 4));
+        
+				
+				scene_test.bindLight(light_test);
+				
+				CubicVR.setGlobalAmbient([0,0,0]);
+
+		    gl.clearColor(0.0, 0.0, 1.0, 1.0);
+
+		    gl.clearDepth(1.0);
+
+		    gl.enable(gl.DEPTH_TEST);
+		    gl.depthFunc(gl.LEQUAL);
+			
+				canvas.addEventListener('mousemove', mouseMove, false);
+				canvas.addEventListener('mousedown', mouseDown, false);
+				canvas.addEventListener('mouseup', mouseUp, false);
+				canvas.addEventListener('mousewheel', mouseWheel, false);
+				canvas.addEventListener('DOMMouseScroll', mouseWheel, false);
+			
+			  document.addEventListener('keydown', onKeyDown, false);
+			  document.addEventListener('keyup', onKeyUp, false);
+			  
+			  window.onbeforeunload = function() {
+			    document.cookie = [camPos[0],camPos[1],camPos[2],camTarget[0],camTarget[1],camTarget[2],scene_test.camera.fov].join(",");
+          // sessionStorage.camPos = camPos;
+          // sessionStorage.camTarget = camTarget;
+          // sessionStorage.camFov = scene_test.camera.fov;
+			  }
+
+        if (document.cookie.length)
+        {
+          var arParams = CubicVR.util.floatDelimArray(document.cookie,",");
+          
+          camPos[0] = arParams[0];
+          camPos[1] = arParams[1];
+          camPos[2] = arParams[2];
+          camTarget[0] = arParams[3];
+          camTarget[1] = arParams[4];
+          camTarget[2] = arParams[5];
+          scene_test.camera.fov = arParams[6];
+          scene_test.camera.calcProjection();
+      		
+          //           camPos = sessionStorage.camPos;
+          // camTarget = sessionStorage.camTarget;
+          // scene_test.camera.fov = sessionStorage.camFov;
+        }
+        
+        setInterval(drawScene, 15); 
+		  }
+		  
+
+  		var camPos = [-1,8,-1];
+			var camTarget = [0,8,0];
+			var camDist = 0.5;
+		
+		  function drawScene() 
+			{
+				runTimer();
+        runKeyboardControls();
+
+				light_test.position = scene_test.camera.position;
+
+				gl.clearColor(0.5, 0.5, 0.5, 1.0);				
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+				camPos = CubicVR.vec3.trackTarget(camPos,camTarget,0.05,camDist);
+
+				scene_test.camera.position = camPos;
+				scene_test.camera.target = camTarget;
+				
+			  if (playing) {
+			    playTimer += timerData.timerLastSeconds;
+			    scene_test.evaluate(playTimer);
+			    document.getElementById("timerOutput").innerHTML = parseInt(playTimer*100.0)/100.0;
+			  }
+				
+        scene_test.render();
+		  }			
+
+
+			var mpos = [0,0]
+			var mdown = false;
+			
+			function clearCam()
+			{
+			  camPos = [-1,8,-1];
+  			camTarget = [0,8,0];
+    		scene_test.camera.fov = 60;
+    		scene_test.camera.calcProjection();
+			}
+			
+			function mouseDown(ev)
+			{
+				mdown = true;
+				mpos = [ev.clientX,ev.clientY];
+			}
+			
+			function mouseUp(ev)
+			{
+				mdown = false;
+			}			
+
+			function mouseMove(ev)
+			{
+				if (!mdown) return;
+				
+				var mdelta = new Array();
+				
+				mdelta[0] = mpos[0]-ev.clientX;
+				mdelta[1] = (mpos[1]-ev.clientY)*aspect;
+								
+				mpos = [ev.clientX,ev.clientY];
+								
+				camPos = CubicVR.vec3.moveViewRelative(camPos,camTarget,camDist*mdelta[0]/100.0,0);
+				camPos[1] -= camDist*mdelta[1]/300.0;
+
+				camPos = CubicVR.vec3.trackTarget(camPos,camTarget,1.0,camDist);				
+			}
+			
+			function mouseWheel(ev)
+			{
+        var delta = ev.wheelDelta?ev.wheelDelta:(-ev.detail);
+
+        var mvSpeed = 24.0;
+
+        var v = CubicVR.vec3.multiply(CubicVR.vec3.normalize(CubicVR.vec3.subtract(camTarget,camPos)),mvSpeed*delta*timerData.timerLastSeconds);
+        
+        if (delta < 0) 
+        {
+          camPos = CubicVR.vec3.add(camPos,v);
+          camTarget = CubicVR.vec3.subtract(camPos,CubicVR.vec3.multiply(CubicVR.vec3.normalize(v),camDist));
+        }
+        else if (delta) {
+          camPos = CubicVR.vec3.add(camPos,v);
+          camTarget = CubicVR.vec3.add(camTarget,v);
+        }
+        
+        // camDist -= delta/10.0;
+        // if (camDist < 0.3) camDist = 0.3;
+        // if (camDist > 2000.0) camDist = 2000.0;
+			}
+
+      
+      var key_state = [];
+      
+      var keyboard_map = {
+        FORWARD: ("W").charCodeAt(0),
+        BACK: ("S").charCodeAt(0),
+        LEFT: ("A").charCodeAt(0),
+        RIGHT: ("D").charCodeAt(0),
+        UP: ("X").charCodeAt(0),
+        DOWN: ("Z").charCodeAt(0),
+        ZERO: ("0").charCodeAt(0),
+        KEY_P: ("P").charCodeAt(0),
+        KEY_I: ("I").charCodeAt(0),
+        FOV_ZOOMIN: 61, // +
+        FOV_ZOOMINB: 107, // Shift -
+        FOV_ZOOMOUT: 109, // -
+        FOV_ZOOMOUTB: 0, // +
+        SHIFT: 16
+      };
+
+      function onKeyUp(e)
+      {
+        onKeyPress(e,false);
+        
+        if (e.keyCode==keyboard_map.ZERO)
+        {
+          clearCam();
+        }
+
+        if (e.keyCode == keyboard_map.KEY_P) {
+          playing = !playing;
+        }
+        
+        if (e.keyCode == keyboard_map.KEY_I) {
+          playTimer = sceneTimes[activeScene];
+        }
+
+      }
+      
+      function onKeyDown(e)
+      {
+        onKeyPress(e,true);
+        // console.log(e.keyCode);
+      }
+
+      function onKeyPress(e,down)
+      {
+        key_state[e.keyCode] = down;
+      }
+      
+      function runKeyboardControls()
+      {
+        var newPos, newTarget, v;
+        var mvSpeed = 32.0;
+
+        if (key_state[keyboard_map.SHIFT]) {
+          mvSpeed *= 3.0;
+          key_state[keyboard_map.FOV_ZOOMIN] = false;
+          key_state[keyboard_map.FOV_ZOOMOUT] = false;
+        }
+        else
+        {
+          key_state[keyboard_map.FOV_ZOOMINB] = false;
+          key_state[keyboard_map.FOV_ZOOMOUTB] = false;
+        }
+        
+        if (key_state[keyboard_map.FORWARD]) {
+          v = CubicVR.vec3.multiply(CubicVR.vec3.normalize(CubicVR.vec3.subtract(camTarget,camPos)),mvSpeed*timerData.timerLastSeconds);
+          
+          camPos = CubicVR.vec3.add(camPos,v);
+          camTarget = CubicVR.vec3.add(camTarget,v);
+        }
+        if (key_state[keyboard_map.BACK]) {
+          v = CubicVR.vec3.multiply(CubicVR.vec3.normalize(CubicVR.vec3.subtract(camTarget,camPos)),mvSpeed*timerData.timerLastSeconds);
+          
+          camPos = CubicVR.vec3.subtract(camPos,v);
+          camTarget = CubicVR.vec3.subtract(camTarget,v);
+        }
+        if (key_state[keyboard_map.LEFT]) {
+          newPos = CubicVR.vec3.moveViewRelative(camPos,camTarget,-mvSpeed*timerData.timerLastSeconds,0);
+          newTarget = CubicVR.vec3.moveViewRelative(camTarget,camPos,mvSpeed*timerData.timerLastSeconds,0);
+          camPos = newPos;
+          camTarget = newTarget;
+        }
+        if (key_state[keyboard_map.RIGHT]) {
+          newPos = CubicVR.vec3.moveViewRelative(camPos,camTarget,mvSpeed*timerData.timerLastSeconds,0);
+          newTarget = CubicVR.vec3.moveViewRelative(camTarget,camPos,-mvSpeed*timerData.timerLastSeconds,0);
+          camPos = newPos;
+          camTarget = newTarget;
+        }
+        if (key_state[keyboard_map.UP]) {
+          camPos[1] += mvSpeed*timerData.timerLastSeconds;
+          camTarget[1] += mvSpeed*timerData.timerLastSeconds;
+        }
+        if (key_state[keyboard_map.DOWN]) {
+          camPos[1] -= mvSpeed*timerData.timerLastSeconds;
+          camTarget[1] -= mvSpeed*timerData.timerLastSeconds;
+        }
+        if (key_state[keyboard_map.FOV_ZOOMOUT]||key_state[keyboard_map.FOV_ZOOMOUTB]) {
+          scene_test.camera.fov += timerData.timerLastSeconds*mvSpeed;
+          scene_test.camera.calcProjection();
+        }
+        if (key_state[keyboard_map.FOV_ZOOMIN]||key_state[keyboard_map.FOV_ZOOMINB]) {
+          scene_test.camera.fov -= timerData.timerLastSeconds*mvSpeed;
+          scene_test.camera.calcProjection();
+        }
+        
+        if (scene_test.camera.fov<1) scene_test.camera.fov = 1;
+        if (scene_test.camera.fov>150) scene_test.camera.fov = 150;
+      }
+
+		</script>
+	</head>
+	<body onLoad="webGLStart();" style='margin:0px;overflow:hidden;background:black'>	
+	<script type='text/javascript'>
+			canvas_w = window.innerWidth;
+			canvas_h = window.innerHeight;
+			aspect = canvas_w/canvas_h;
+
+			document.write("<canvas id='cubicvr-canvas' style='border: none;' width='"+window.innerWidth+"' height='"+(window.innerHeight)+"'></canvas>");
+		</script>
+		<div style='position:absolute;top:0px;left:0px;width:180px;height:200px;color:white;font-family:courier; overflow:visible; font-size:12px; font-weight:bold; padding:10px'>
+			  W, A, S, D = Move<br/>
+			  Z, W = Move Up/Down<br/>
+			  SHIFT = Move Fast<br/>
+			  Mouse Drag = Look<br/>
+			  + / - = Field of View
+			  Reset Camera = 0 (zero)<br/>
+			  P = Play/Pause<br/>
+			  I = Reset Timeline<br/><br/>
+			  <select id='sceneSelect'></select><br/><br/>
+			  Time Index: <span id='timerOutput'>STOPPED</span>
+	  </div>
+	</body>
+</html>
