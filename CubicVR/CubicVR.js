@@ -13,7 +13,7 @@ var M_PI = 3.1415926535897932384626433832795028841968;
 var M_TWO_PI = 2.0 * M_PI;
 var M_HALF_PI = M_PI / 2.0;
 
-var SCRIPT_LOCATION = "";
+var SCRIPT_LOCATION = "CubicVR/";
 
 try {
   Array.forEach(document.querySelectorAll("script"), function (a) {
@@ -25,6 +25,7 @@ try {
 }
 catch(e) {
   // likely that 'document' is not defined (doesn't really matter)
+  SCRIPT_LOCATION = "";
 } //try
 
 (function(undef) {
@@ -7393,7 +7394,8 @@ PostProcessChain.prototype.render = function() {
 function cubicvr_loadColladaWorker(meshUrl, prefix, callback, deferred_bin) {
   var worker;
   try {
-    worker = new Worker(SCRIPT_LOCATION + 'collada.js');
+    // worker = new Worker(SCRIPT_LOCATION + 'collada.js');
+    worker = new Worker('CubicVR/collada.js');
   }
   catch(e) {
     throw new Error("Can't find collada.js");
